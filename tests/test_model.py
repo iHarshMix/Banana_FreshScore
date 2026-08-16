@@ -2,7 +2,9 @@
 
 import tempfile
 from pathlib import Path
+
 import torch
+
 from src.banana_mlops.models.architecture import (
     BananaRipenessRegressor,
     export_torchscript,
