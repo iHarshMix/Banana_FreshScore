@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     # Model & Storage
     model_path: str = "models/production_model.pt"
-    mlflow_tracking_uri: str = "http://localhost:5000"
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
     s3_bucket: str = "banana-mlops-bucket"
 
     # Networking & Serving

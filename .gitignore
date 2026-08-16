@@ -56,6 +56,7 @@ data/production_logs/predictions.csv
 models/*.pt
 models/*.pth
 models/*.onnx
+models/checkpoints/
 !models/.gitkeep
 
 # MLflow
