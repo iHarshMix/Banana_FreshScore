@@ -40,10 +40,14 @@ kaggle.json
 # ML Data & Artifacts (tracked via DVC / S3, not Git)
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/*.dvc
 data/processed/*
 !data/processed/.gitkeep
+!data/processed/**/*.dvc
+!data/processed/**/.gitignore
 data/replay_buffer/*
 !data/replay_buffer/.gitkeep
+!data/replay_buffer/**/*.dvc
 data/production_logs/images/*
 !data/production_logs/images/.gitkeep
 data/production_logs/predictions.csv
