@@ -1,0 +1,75 @@
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+
+# Environment variables & Secrets
+.env
+.env.local
+*.pem
+*.key
+kaggle.json
+
+# ML Data & Artifacts (tracked via DVC / S3, not Git)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/replay_buffer/*
+!data/replay_buffer/.gitkeep
+data/production_logs/images/*
+!data/production_logs/images/.gitkeep
+data/production_logs/predictions.csv
+
+# Models & JIT weights
+models/*.pt
+models/*.pth
+models/*.onnx
+!models/.gitkeep
+
+# MLflow
+mlruns/
+mlartifacts/
+mlflow.db
+
+# Airflow
+airflow.db
+airflow.cfg
+logs/
+
+# Reports (large generated HTMLs)
+reports/*.html
+!reports/.gitkeep
+
+# IDEs & System files
+.vscode/
+.idea/
+.DS_Store
+*.Zone.Identifier
