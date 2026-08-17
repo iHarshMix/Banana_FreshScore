@@ -33,6 +33,7 @@ services:
     environment:
       - FASTAPI_URL=http://backend:8000
     volumes:
+      - ./frontend:/app/frontend
       - ./reports:/app/reports:ro
       - ./models:/app/models:ro
     depends_on:
