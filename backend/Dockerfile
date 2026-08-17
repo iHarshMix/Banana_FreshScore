@@ -27,6 +27,7 @@ RUN pip install --no-cache-dir \
     python-multipart==0.0.9 \
     pillow==10.4.0 \
     numpy==1.26.4 \
+    pandas==2.2.2 \
     httpx==0.27.0
 
 # Production Runtime Stage
