@@ -52,7 +52,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.subheader("⚙️ API Service Status")
-    api_url = st.text_input("FastAPI Endpoint", value="http://localhost:8000")
+    import os
+
+    default_api_url = os.getenv("FASTAPI_URL", "http://localhost:8000")
+    api_url = st.text_input("FastAPI Endpoint", value=default_api_url)
 
     api_online = False
     try:
@@ -100,39 +103,56 @@ with tab1:
         st.markdown("### 📤 Image Input")
         upload_mode = st.radio(
             "Choose Input Method",
-            ["Upload Image", "Sample Gallery", "Apply Camera Drift Live"],
+            [
+                "🍌 Sample Banana Gallery",
+                "📤 Upload Custom Photo",
+                "🌪️ Simulate Camera Drift Live",
+            ],
             horizontal=True,
         )
 
         selected_image = None
-        if upload_mode == "Upload Image":
+        if upload_mode == "🍌 Sample Banana Gallery":
+            st.markdown("**Quick-Select a Banana Ripeness Stage:**")
+            sample_dir = Path("frontend/sample_images")
+            samples = {
+                "🟢 Unripe": sample_dir / "1_unripe_green.jpg",
+                "🟡 Fresh Ripe": sample_dir / "2_fresh_ripe.jpg",
+                "🟠 Overripe": sample_dir / "3_overripe_spotted.jpg",
+                "🔴 Rotten": sample_dir / "4_rotten_decayed.jpg",
+            }
+
+            if "chosen_sample" not in st.session_state:
+                st.session_state["chosen_sample"] = "🟡 Fresh Ripe"
+
+            cols = st.columns(4)
+            for idx, (label, path) in enumerate(samples.items()):
+                with cols[idx]:
+                    if path.exists():
+                        st.image(Image.open(path), use_column_width=True)
+                        if st.button(
+                            label,
+                            key=f"sample_btn_{idx}",
+                            use_container_width=True,
+                        ):
+                            st.session_state["chosen_sample"] = label
+
+            chosen_label = st.session_state["chosen_sample"]
+            chosen_path = samples.get(
+                chosen_label, sample_dir / "2_fresh_ripe.jpg"
+            )
+            if chosen_path and chosen_path.exists():
+                selected_image = Image.open(chosen_path).convert("RGB")
+                st.info(f"Selected Sample: **{chosen_label}**")
+
+        elif upload_mode == "📤 Upload Custom Photo":
             uploaded_file = st.file_uploader(
                 "Upload Banana Image (JPG, PNG, WEBP)",
                 type=["jpg", "jpeg", "png", "webp"],
             )
             if uploaded_file is not None:
                 selected_image = Image.open(uploaded_file).convert("RGB")
-        elif upload_mode == "Sample Gallery":
-            sample_dir = Path("data/raw/test")
-            sample_files = (
-                list(sample_dir.glob("*/*.jpg"))[:6]
-                if sample_dir.exists()
-                else []
-            )
-            if sample_files:
-                sample_map = {
-                    f"{f.parent.name.upper()}: {f.name[:20]}...": f
-                    for f in sample_files
-                }
-                choice = st.selectbox(
-                    "Select Sample Image", list(sample_map.keys())
-                )
-                if choice:
-                    selected_image = Image.open(sample_map[choice]).convert(
-                        "RGB"
-                    )
-            else:
-                st.info("Sample gallery images will appear when data is loaded.")
+
         else:
             st.markdown("**Simulate Warehouse Camera Shift:**")
             hue_slider = st.slider("Cooler Color Shift (Hue Δ°)", 0.0, 45.0, 25.0)
@@ -141,12 +161,9 @@ with tab1:
             )
             blur_slider = st.slider("Lens Blur (Radius)", 0.0, 4.0, 2.0)
 
-            sample_dir = Path("data/raw/test/ripe")
-            sample_files = (
-                list(sample_dir.glob("*.jpg")) if sample_dir.exists() else []
-            )
-            if sample_files:
-                base_img = Image.open(sample_files[0]).convert("RGB")
+            base_path = Path("frontend/sample_images/2_fresh_ripe.jpg")
+            if base_path.exists():
+                base_img = Image.open(base_path).convert("RGB")
                 from src.banana_mlops.data.drift_generator import (
                     apply_synthetic_drift,
                 )
@@ -163,8 +180,8 @@ with tab1:
         if selected_image is not None:
             st.image(
                 selected_image,
-                caption="Input Image Payload",
-                use_container_width=True,
+                caption="Active Image Payload for Inference",
+                use_column_width=True,
             )
 
     with col2:
