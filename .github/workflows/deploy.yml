@@ -53,8 +53,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
-          role-session-name: GitHubActionsBananaFreshScoreDeploy
-          audience: sts.amazonaws.com
+
 
 
       - name: Log in to Amazon ECR
