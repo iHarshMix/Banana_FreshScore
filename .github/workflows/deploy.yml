@@ -48,7 +48,21 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
+      - name: Debug OIDC Token Claims & Role ARN
+        run: |
+          echo "Target Role ARN length: ${#ROLE_ARN}"
+          echo "Target Region: '${{ secrets.AWS_REGION }}'"
+          
+          # Fetch and decode OIDC JWT token claims
+          TOKEN=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')
+          PAYLOAD=$(echo "$TOKEN" | cut -d. -f2)
+          echo "=== GitHub OIDC Token Claims ==="
+          python3 -c "import base64, json; data = json.loads(base64.urlsafe_b64decode('$PAYLOAD' + '==')); print('aud:', data.get('aud')); print('iss:', data.get('iss')); print('sub:', data.get('sub')); print('repository:', data.get('repository')); print('repository_owner:', data.get('repository_owner'))"
+        env:
+          ROLE_ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+
       - name: Configure AWS Credentials via OIDC (Keyless)
+
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
