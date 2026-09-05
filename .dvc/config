@@ -1,5 +1,8 @@
 [core]
     analytics = false
-    remote = localstore
+    remote = s3store
 ['remote "localstore"']
     url = /home/harsh/.dvc-local-storage
+['remote "s3store"']
+    url = s3://banana-freshscore-storage-harsh/dvc-store
+
