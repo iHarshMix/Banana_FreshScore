@@ -62,11 +62,11 @@ jobs:
           ROLE_ARN: ${{ secrets.AWS_ROLE_TO_ASSUME }}
 
       - name: Configure AWS Credentials via OIDC (Keyless)
-
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-east-1
+
 
 
 
@@ -111,17 +111,27 @@ jobs:
 
       - name: Deploy Containers via AWS SSM (Zero SSH, Port 22 Closed)
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          RAW_ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          RAW_INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          RAW_S3_BUCKET: ${{ secrets.S3_BUCKET }}
           IMAGE_TAG: ${{ github.sha }}
-          INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
         run: |
           echo "Dispatching Zero-Trust deployment command via AWS Systems Manager..."
+          
+          # Sanitize environment variables to prevent newline or trailing whitespace issues
+          ECR_REGISTRY=$(echo "${RAW_ECR_REGISTRY}" | tr -d '\r\n ')
+          INSTANCE_ID=$(echo "${RAW_INSTANCE_ID}" | tr -d '\r\n ')
+          S3_BUCKET=$(echo "${RAW_S3_BUCKET}" | tr -d '\r\n ')
+          AWS_REGION="us-east-1"
+          
+          echo "Target Instance ID: ${INSTANCE_ID}"
+          echo "Target Region:      ${AWS_REGION}"
           
           # Encode production compose file to base64 for remote transfer via SSM
           COMPOSE_B64=$(base64 -w 0 docker-compose.prod.yml)
           
           COMMAND_ID=$(aws ssm send-command \
+            --region "${AWS_REGION}" \
             --instance-ids "${INSTANCE_ID}" \
             --document-name "AWS-RunShellScript" \
             --comment "Zero-Trust Deployment: commit ${{ github.sha }}" \
@@ -130,7 +140,7 @@ jobs:
               \"echo '${COMPOSE_B64}' | base64 -d > /home/ubuntu/banana-mlops/docker-compose.prod.yml\",
               \"cd /home/ubuntu/banana-mlops\",
               \"aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}\",
-              \"if [ -n '${{ secrets.S3_BUCKET }}' ]; then aws s3 sync s3://${{ secrets.S3_BUCKET }}/models /home/ubuntu/banana-mlops/models --no-progress || true; fi\",
+              \"if [ -n '${S3_BUCKET}' ]; then aws s3 sync s3://${S3_BUCKET}/models /home/ubuntu/banana-mlops/models --no-progress || true; fi\",
               \"export ECR_REGISTRY=${ECR_REGISTRY}\",
               \"export IMAGE_TAG=${IMAGE_TAG}\",
               \"docker compose -f docker-compose.prod.yml pull\",
@@ -147,11 +157,13 @@ jobs:
 
           # Wait for SSM command execution to finish
           aws ssm wait command-executed \
+            --region "${AWS_REGION}" \
             --command-id "${COMMAND_ID}" \
             --instance-id "${INSTANCE_ID}"
 
           # Inspect final status
           STATUS=$(aws ssm get-command-invocation \
+            --region "${AWS_REGION}" \
             --command-id "${COMMAND_ID}" \
             --instance-id "${INSTANCE_ID}" \
             --query "Status" \
@@ -161,6 +173,7 @@ jobs:
           if [ "${STATUS}" != "Success" ]; then
             echo "SSM Command output:"
             aws ssm get-command-invocation \
+              --region "${AWS_REGION}" \
               --command-id "${COMMAND_ID}" \
               --instance-id "${INSTANCE_ID}" \
               --query "StandardErrorContent" \
@@ -170,10 +183,12 @@ jobs:
 
       - name: External Public Health Probe
         env:
-          PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
+          RAW_PUBLIC_IP: ${{ secrets.EC2_PUBLIC_IP }}
         run: |
+          PUBLIC_IP=$(echo "${RAW_PUBLIC_IP}" | tr -d '\r\n ')
           echo "Probing public endpoints on http://${PUBLIC_IP}..."
-          curl --fail --retry 10 --retry-delay 5 --retry-connrefused "http://${PUBLIC_IP}:8000/health"
+          curl --fail --retry 12 --retry-delay 5 --retry-connrefused "http://${PUBLIC_IP}:8000/health"
           echo "FastAPI backend is publicly healthy!"
-          curl --fail --retry 10 --retry-delay 5 --retry-connrefused "http://${PUBLIC_IP}:8501/_stcore/health"
+          curl --fail --retry 12 --retry-delay 5 --retry-connrefused "http://${PUBLIC_IP}:8501/_stcore/health"
           echo "Streamlit frontend is publicly healthy!"
+
