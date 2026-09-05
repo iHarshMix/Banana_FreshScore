@@ -65,6 +65,8 @@ models/*.pth
 models/*.onnx
 models/checkpoints/
 !models/.gitkeep
+!models/production_model.pt
+
 
 # MLflow
 mlruns/
